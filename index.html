@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Magic Gift - Real Photo</title>
+    <title>Magic Gift - Mobile Fixed</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+SC:wght@300;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -11,9 +11,9 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
     <style>
-        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Noto Serif SC', serif; user-select: none; }
+        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Noto Serif SC', serif; user-select: none; -webkit-tap-highlight-color: transparent; }
         #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        .input_video { display: none; } /* 隐藏摄像头 */
+        .input_video { display: none; }
 
         #guide-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -21,8 +21,8 @@
             display: flex; flex-direction: column; justify-content: center; align-items: center;
             color: white; text-align: center; transition: opacity 0.8s;
         }
-        .title-box h1 { font-family: 'Cinzel', serif; font-weight: 400; letter-spacing: 8px; font-size: 32px; text-shadow: 0 0 30px rgba(255,215,0,0.6); margin: 0 0 10px 0; }
-        .subtitle { font-size: 14px; color: #888; letter-spacing: 3px; margin-bottom: 50px; text-transform: uppercase; }
+        .title-box h1 { font-family: 'Cinzel', serif; font-weight: 400; letter-spacing: 5px; font-size: 28px; text-shadow: 0 0 30px rgba(255,215,0,0.6); margin: 0 0 10px 0; }
+        .subtitle { font-size: 12px; color: #888; letter-spacing: 3px; margin-bottom: 50px; text-transform: uppercase; }
         #start-btn {
             padding: 14px 45px; font-size: 16px; letter-spacing: 2px;
             background: transparent; border: 1px solid rgba(255,255,255,0.4);
@@ -35,28 +35,28 @@
             pointer-events: none; opacity: 0; transition: opacity 1s, transform 1s;
         }
         #stage-tip.active { opacity: 1; transform: translateY(0); }
-        .tip-main { font-size: 26px; font-weight: 300; letter-spacing: 4px; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.8); margin-bottom: 8px; }
+        .tip-main { font-size: 24px; font-weight: 300; letter-spacing: 4px; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.8); margin-bottom: 8px; }
         .tip-sub { font-size: 14px; color: rgba(255,255,255,0.6); letter-spacing: 1px; font-family: sans-serif; }
         .skip-hint { position: fixed; bottom: 100px; width: 100%; text-align: center; color: #444; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity 2s; z-index: 5; }
 
         .glass-btn {
-            position: fixed; bottom: 40px; z-index: 50;
+            position: fixed; bottom: 30px; z-index: 50;
             background: rgba(30,30,35,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.2);
-            padding: 12px 28px; border-radius: 30px; font-size: 14px; cursor: pointer;
+            padding: 10px 20px; border-radius: 30px; font-size: 12px; cursor: pointer;
             backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             opacity: 0; pointer-events: none; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
         }
         .glass-btn.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
-        #snap-btn { left: 30px; } #maker-btn { right: 30px; }
+        #snap-btn { left: 20px; } #maker-btn { right: 20px; }
 
         #card-modal, #maker-panel { display: none; z-index: 1000; }
         #card-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 8, 0.98); flex-direction: column; justify-content: center; align-items: center; }
-        .card-frame { width: 80%; max-width: 380px; border-radius: 12px; overflow: hidden; box-shadow: 0 0 60px rgba(0,0,0,0.8); border: 1px solid #333; position: relative; }
+        .card-frame { width: 85%; max-width: 380px; border-radius: 12px; overflow: hidden; box-shadow: 0 0 60px rgba(0,0,0,0.8); border: 1px solid #333; position: relative; }
         #final-card-img { width: 100%; display: block; }
         .action-area { margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
         .save-btn { text-decoration: none; background: white; color: black; padding: 12px 35px; border-radius: 50px; font-weight: bold; font-size: 14px; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
 
-        #maker-panel { position: fixed; bottom: 90px; right: 20px; width: 280px; background: rgba(20, 20, 25, 0.95); border: 1px solid #444; border-radius: 16px; padding: 20px; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
+        #maker-panel { position: fixed; bottom: 80px; right: 20px; width: 260px; background: rgba(20, 20, 25, 0.95); border: 1px solid #444; border-radius: 16px; padding: 20px; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
         .input-box { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444; color: white; margin-top: 8px; box-sizing: border-box; border-radius: 6px; }
         .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; }
         .color-item { padding-bottom: 100%; border-radius: 50%; cursor: pointer; border: 2px solid #333; transition: 0.2s; }
@@ -114,12 +114,16 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
         const urlParams = new URLSearchParams(window.location.search);
+        // 检测移动端
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
         const CONFIG = {
             photo: urlParams.get('img') || 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=1000&auto=format&fit=crop',
             text: urlParams.get('text') || "2025 有你\n就是礼物",
             from: urlParams.get('from') || "神秘朋友",
             theme: urlParams.get('theme') || 'cyber',
-            particleCount: 22000 
+            // 🔥 手机端减少粒子，电脑端增加粒子，防止卡死
+            particleCount: isMobile ? 12000 : 22000 
         };
 
         const THEMES = {
@@ -139,8 +143,6 @@
         let isHandPresent = false;
         let waveLastX = 0, time = 0, audioInit = false;
         let uploadedImgUrl = "";
-        
-        // 🔥 新增：照片实体 Mesh
         let photoMesh = null;
 
         const startBtn = document.getElementById('start-btn');
@@ -158,7 +160,7 @@
                 enterStage(STAGE.WAIT_HAND);
             } catch (e) {
                 console.error(e);
-                alert("初始化失败，请重试");
+                alert("初始化失败，请重试。请确保在 Safari/Chrome 中打开，并允许权限。");
             }
         });
 
@@ -238,21 +240,16 @@
         }
 
         function triggerPinch() {
-            // 1. 粒子吸附
             particleData.forEach(p => {
                 if(p.mode === 'photo') {
                     p.speed = 0.15;
                     p.color.setHex(0xffffff);
                 }
             });
-            
-            // 2. 辉光爆发
             const bloom = composer.passes[1]; bloom.strength = 3.5;
             let fade = setInterval(() => { bloom.strength -= 0.15; if(bloom.strength <= 1.2) clearInterval(fade); }, 50);
 
-            // 3. 🔥 核心：让高清原图(Mesh)浮现出来
             if(photoMesh) {
-                // 一个简单的淡入动画
                 let opacity = 0;
                 let fadeIn = setInterval(() => {
                     opacity += 0.05;
@@ -268,7 +265,6 @@
         }
 
         function triggerWave() {
-            // 1. 隐藏原图 Mesh
             if(photoMesh) {
                 let fadeOut = setInterval(() => {
                     photoMesh.material.opacity -= 0.1;
@@ -297,10 +293,16 @@
 
         function initThree() {
             scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x000000, 0.0012); 
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 3000); camera.position.z = 550;
+            // 手机端拉远一点相机，防止物体充满屏幕边缘
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 3000); 
+            camera.position.z = isMobile ? 650 : 550;
+
             renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true });
-            renderer.setSize(window.innerWidth, window.innerHeight); renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+            // 手机端限制 pixelRatio，防止发热和掉帧
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
             const renderPass = new RenderPass(scene, camera);
             const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
             bloomPass.threshold = 0; bloomPass.strength = 1.6; bloomPass.radius = 0.6;
@@ -309,16 +311,32 @@
             window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); composer.setSize(window.innerWidth, window.innerHeight); });
         }
 
+        // 🔥 核心修改：生成内存中的贴图，不依赖网络图片
+        function createSparkTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 32; canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+            grad.addColorStop(0, 'rgba(255,255,255,1)');
+            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 32, 32);
+            return new THREE.CanvasTexture(canvas);
+        }
+
         function initParticles() {
             const geo = new THREE.BufferGeometry();
             const pos = [], cols = [], sizes = [];
-            const tex = new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/sprites/spark1.png');
+            // 使用内存生成的贴图
+            const tex = createSparkTexture();
+
             for(let i=0; i<CONFIG.particleCount; i++) {
                 const x = (Math.random()-0.5)*50; const y = -300+(Math.random()-0.5)*20; const z = (Math.random()-0.5)*50;
                 pos.push(x, y, z);
                 const c = currentPalette[Math.floor(Math.random()*currentPalette.length)];
                 cols.push(c.r, c.g, c.b);
-                sizes.push(Math.random() * 6 + 2);
+                // 手机端粒子稍微大一点，否则看不清
+                sizes.push(Math.random() * (isMobile ? 8 : 6) + 2);
                 particleData.push({
                     x:x, y:y, z:z, tx:x, ty:y, tz:z, speed: 0.02,
                     baseColor: c, color: c.clone(), mode: 'idle', angle: Math.random()*Math.PI*2,
@@ -328,13 +346,20 @@
             geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
             geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
             geo.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
-            const mat = new THREE.PointsMaterial({ size: 6, map: tex, vertexColors: true, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: 0.85 });
+            const mat = new THREE.PointsMaterial({ 
+                size: isMobile ? 8 : 6, 
+                map: tex, 
+                vertexColors: true, 
+                blending: THREE.AdditiveBlending, 
+                depthWrite: false, 
+                transparent: true, 
+                opacity: 0.85 
+            });
             particles = new THREE.Points(geo, mat);
             scene.add(particles);
         }
 
         async function prepareTargets() {
-            // 1. 图片处理：自适应居中 & 创建高清Mesh
             const img = new Image(); img.crossOrigin = "Anonymous"; img.src = CONFIG.photo;
             await new Promise(r => { img.onload = r; img.onerror = r; });
             const c = document.createElement('canvas'); const ctx = c.getContext('2d');
@@ -342,27 +367,18 @@
             const aspect = img.width / img.height;
             let targetW, targetH;
             
-            // 🔥 修改：大幅增加图片显示范围，从 500 -> 900
             const MAX_3D_SIZE = 900; 
             if(aspect >= 1) { targetW = MAX_3D_SIZE; targetH = MAX_3D_SIZE / aspect; } 
             else { targetH = MAX_3D_SIZE; targetW = MAX_3D_SIZE * aspect; }
 
-            // 🔥 新增：创建隐形照片实体 (Mesh)
             const tex = new THREE.TextureLoader().load(CONFIG.photo);
             tex.colorSpace = THREE.SRGBColorSpace;
             const photoGeo = new THREE.PlaneGeometry(targetW, targetH);
-            const photoMat = new THREE.MeshBasicMaterial({ 
-                map: tex, 
-                transparent: true, 
-                opacity: 0, // 初始透明
-                side: THREE.DoubleSide 
-            });
+            const photoMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, side: THREE.DoubleSide });
             photoMesh = new THREE.Mesh(photoGeo, photoMat);
-            // 放在粒子稍微后面一点点，防止闪烁
             photoMesh.position.z = -2; 
             scene.add(photoMesh);
 
-            // 继续计算粒子点位 (用于 blow 阶段)
             const size = 250; 
             c.width = size; c.height = size / aspect;
             ctx.drawImage(img, 0, 0, c.width, c.height);
@@ -381,7 +397,6 @@
                 }
             }
 
-            // 2. 文字处理
             ctx.clearRect(0,0,c.width,c.height); c.width = 1024; c.height = 512;
             ctx.font = "600 100px 'Noto Serif SC', sans-serif"; 
             ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
@@ -406,7 +421,6 @@
                 const p = particleData[i]; const ix = i*3;
                 let tx = p.tx, ty = p.ty, tz = p.tz;
                 if(p.mode === 'photo' || p.mode === 'text') {
-                    // 如果 Mesh 显示了，粒子就停止呼吸浮动，紧贴 Mesh
                     if(!photoMesh || photoMesh.material.opacity < 0.5) {
                         tx += Math.sin(time + p.angle) * 3; ty += Math.cos(time + p.angle) * 3;
                         if(isHandPresent) { tx += (handPos.x - 0.5) * 40; ty -= (handPos.y - 0.5) * 40; }
@@ -428,7 +442,6 @@
             particles.geometry.attributes.position.needsUpdate = true;
             particles.geometry.attributes.color.needsUpdate = true;
             
-            // 如果 Mesh 存在，让它跟随手部轻微移动 (视差效果)
             if(photoMesh && isHandPresent) {
                 photoMesh.position.x += ((handPos.x - 0.5)*20 - photoMesh.position.x) * 0.1;
                 photoMesh.position.y += (-(handPos.y - 0.5)*20 - photoMesh.position.y) * 0.1;
