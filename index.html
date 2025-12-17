@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Magic Gift - Mobile Fixed</title>
+    <title>Magic Gift - Clear View</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+SC:wght@300;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -114,7 +114,6 @@
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
         const urlParams = new URLSearchParams(window.location.search);
-        // 检测移动端
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
         const CONFIG = {
@@ -122,7 +121,6 @@
             text: urlParams.get('text') || "2025 有你\n就是礼物",
             from: urlParams.get('from') || "神秘朋友",
             theme: urlParams.get('theme') || 'cyber',
-            // 🔥 手机端减少粒子，电脑端增加粒子，防止卡死
             particleCount: isMobile ? 12000 : 22000 
         };
 
@@ -160,7 +158,7 @@
                 enterStage(STAGE.WAIT_HAND);
             } catch (e) {
                 console.error(e);
-                alert("初始化失败，请重试。请确保在 Safari/Chrome 中打开，并允许权限。");
+                alert("初始化失败，请重试。");
             }
         });
 
@@ -246,9 +244,11 @@
                     p.color.setHex(0xffffff);
                 }
             });
-            const bloom = composer.passes[1]; bloom.strength = 3.5;
-            let fade = setInterval(() => { bloom.strength -= 0.15; if(bloom.strength <= 1.2) clearInterval(fade); }, 50);
-
+            
+            // 🔥 降低辉光强度，防止过曝
+            const bloom = composer.passes[1]; 
+            bloom.strength = 1.0; 
+            
             if(photoMesh) {
                 let opacity = 0;
                 let fadeIn = setInterval(() => {
@@ -293,25 +293,32 @@
 
         function initThree() {
             scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x000000, 0.0012); 
-            // 手机端拉远一点相机，防止物体充满屏幕边缘
             camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 3000); 
             camera.position.z = isMobile ? 650 : 550;
 
             renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true });
             renderer.setSize(window.innerWidth, window.innerHeight); 
-            // 手机端限制 pixelRatio，防止发热和掉帧
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            
+            // 🔥 关键修复：开启 ToneMapping 防止高光溢出
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            renderer.toneMappingExposure = 1.5;
+
             document.getElementById('canvas-container').appendChild(renderer.domElement);
             
             const renderPass = new RenderPass(scene, camera);
-            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-            bloomPass.threshold = 0; bloomPass.strength = 1.6; bloomPass.radius = 0.6;
+            
+            // 🔥 关键修复：阈值设为 0.15 (只有亮处发光)，强度降为 1.0 (柔和光晕)
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.65);
+            bloomPass.threshold = 0.15; 
+            bloomPass.strength = 1.0; 
+            bloomPass.radius = 0.4;
+            
             composer = new EffectComposer(renderer); composer.addPass(renderPass); composer.addPass(bloomPass);
             initParticles(); animate();
             window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); composer.setSize(window.innerWidth, window.innerHeight); });
         }
 
-        // 🔥 核心修改：生成内存中的贴图，不依赖网络图片
         function createSparkTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 32; canvas.height = 32;
@@ -327,7 +334,6 @@
         function initParticles() {
             const geo = new THREE.BufferGeometry();
             const pos = [], cols = [], sizes = [];
-            // 使用内存生成的贴图
             const tex = createSparkTexture();
 
             for(let i=0; i<CONFIG.particleCount; i++) {
@@ -335,7 +341,6 @@
                 pos.push(x, y, z);
                 const c = currentPalette[Math.floor(Math.random()*currentPalette.length)];
                 cols.push(c.r, c.g, c.b);
-                // 手机端粒子稍微大一点，否则看不清
                 sizes.push(Math.random() * (isMobile ? 8 : 6) + 2);
                 particleData.push({
                     x:x, y:y, z:z, tx:x, ty:y, tz:z, speed: 0.02,
@@ -374,7 +379,16 @@
             const tex = new THREE.TextureLoader().load(CONFIG.photo);
             tex.colorSpace = THREE.SRGBColorSpace;
             const photoGeo = new THREE.PlaneGeometry(targetW, targetH);
-            const photoMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, side: THREE.DoubleSide });
+            
+            // 🔥 关键修复：照片材质颜色设为灰色 (0xaaaaaa)，降低自身亮度
+            const photoMat = new THREE.MeshBasicMaterial({ 
+                map: tex, 
+                transparent: true, 
+                opacity: 0, 
+                side: THREE.DoubleSide, 
+                color: 0xaaaaaa 
+            });
+            
             photoMesh = new THREE.Mesh(photoGeo, photoMat);
             photoMesh.position.z = -2; 
             scene.add(photoMesh);
