@@ -3,104 +3,162 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Magic Gift - Clear View</title>
+    <title>Starlight</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Noto+Serif+SC:wght@300;900&display=swap" rel="stylesheet">
+    <!-- 极简无衬线字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
     <style>
-        body { margin: 0; overflow: hidden; background-color: #050505; font-family: 'Noto Serif SC', serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        body { 
+            margin: 0; overflow: hidden; 
+            background-color: #000000; 
+            font-family: 'Inter', sans-serif; 
+            user-select: none; -webkit-tap-highlight-color: transparent; 
+        }
+
         #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
         .input_video { display: none; }
 
+        /* === 核心背景 === */
+        .planet-horizon {
+            position: fixed; bottom: -35vh; left: 50%; transform: translateX(-50%);
+            width: 140vw; height: 60vh; border-radius: 50% 50% 0 0;
+            background: black;
+            box-shadow: 0 -20px 80px rgba(0, 150, 255, 0.4), 
+                        0 -5px 20px rgba(255, 255, 255, 0.3);
+            z-index: 0; pointer-events: none;
+        }
+
+        /* === 启动页 (修正居中问题) === */
         #guide-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 999;
+            z-index: 999; 
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            color: white; text-align: center; transition: opacity 0.8s;
+            text-align: center; /* 确保文字居中 */
+            transition: opacity 0.8s;
         }
-        .title-box h1 { font-family: 'Cinzel', serif; font-weight: 400; letter-spacing: 5px; font-size: 28px; text-shadow: 0 0 30px rgba(255,215,0,0.6); margin: 0 0 10px 0; }
-        .subtitle { font-size: 12px; color: #888; letter-spacing: 3px; margin-bottom: 50px; text-transform: uppercase; }
+        .title-box { margin-bottom: 40px; }
+        .title-box h1 { 
+            font-weight: 200; letter-spacing: 12px; font-size: 32px; color: #ffffff; 
+            margin: 0 0 10px 0; text-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+        .subtitle { 
+            font-size: 11px; color: rgba(255,255,255,0.4); 
+            letter-spacing: 4px; margin: 0; text-transform: uppercase; 
+            display: block; width: 100%;
+        }
         #start-btn {
-            padding: 14px 45px; font-size: 16px; letter-spacing: 2px;
-            background: transparent; border: 1px solid rgba(255,255,255,0.4);
-            border-radius: 50px; color: white; cursor: pointer; transition: all 0.3s;
-            font-family: 'Cinzel', serif; box-shadow: 0 0 15px rgba(255,255,255,0.1);
+            padding: 14px 50px; font-size: 14px; letter-spacing: 3px;
+            background: transparent; border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 50px; color: white; cursor: pointer; transition: all 0.4s ease;
         }
-        
+        #start-btn:hover { 
+            border-color: #fff; background: rgba(255,255,255,0.05);
+            box-shadow: 0 0 25px rgba(255,255,255,0.4); letter-spacing: 5px;
+        }
+
+        /* === 提示文字 === */
         #stage-tip {
-            position: fixed; top: 15%; left: 0; width: 100%; text-align: center; z-index: 10;
-            pointer-events: none; opacity: 0; transition: opacity 1s, transform 1s;
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; z-index: 20;
+            pointer-events: none; opacity: 0; transition: opacity 0.5s;
+            background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px);
+            padding: 25px 40px; border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5); min-width: 220px;
         }
-        #stage-tip.active { opacity: 1; transform: translateY(0); }
-        .tip-main { font-size: 24px; font-weight: 300; letter-spacing: 4px; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,0.8); margin-bottom: 8px; }
-        .tip-sub { font-size: 14px; color: rgba(255,255,255,0.6); letter-spacing: 1px; font-family: sans-serif; }
+        #stage-tip.active { opacity: 1; }
+        .tip-main { 
+            font-size: 28px; font-weight: 600; letter-spacing: 6px; 
+            color: #fff; text-shadow: 0 0 15px rgba(255,255,255,0.8); margin-bottom: 8px;
+        }
+        .tip-sub { font-size: 14px; color: rgba(255,255,255,0.7); letter-spacing: 2px; text-transform: uppercase;}
         .skip-hint { position: fixed; bottom: 100px; width: 100%; text-align: center; color: #444; font-size: 12px; pointer-events: none; opacity: 0; transition: opacity 2s; z-index: 5; }
 
+        /* === 底部按钮 === */
         .glass-btn {
             position: fixed; bottom: 30px; z-index: 50;
-            background: rgba(30,30,35,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.2);
-            padding: 10px 20px; border-radius: 30px; font-size: 12px; cursor: pointer;
-            backdrop-filter: blur(10px); box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            opacity: 0; pointer-events: none; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.8); padding: 12px 24px; border-radius: 50px; 
+            font-size: 12px; cursor: pointer; backdrop-filter: blur(5px);
+            opacity: 0; pointer-events: none; transform: translateY(20px); transition: all 0.5s;
         }
+        .glass-btn:hover { border-color: rgba(255,255,255,0.6); color: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.3); transform: translateY(-3px); }
         .glass-btn.show { opacity: 1; pointer-events: auto; transform: translateY(0); }
-        #snap-btn { left: 20px; } #maker-btn { right: 20px; }
+        #snap-btn { left: 30px; } #maker-btn { right: 30px; }
 
+        /* === 弹窗与面板 === */
         #card-modal, #maker-panel { display: none; z-index: 1000; }
-        #card-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 8, 0.98); flex-direction: column; justify-content: center; align-items: center; }
-        .card-frame { width: 85%; max-width: 380px; border-radius: 12px; overflow: hidden; box-shadow: 0 0 60px rgba(0,0,0,0.8); border: 1px solid #333; position: relative; }
+        #card-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); flex-direction: column; justify-content: center; align-items: center; }
+        .card-frame { width: 85%; max-width: 400px; border-radius: 4px; border: 1px solid #333; box-shadow: 0 0 40px rgba(255,255,255,0.1); }
         #final-card-img { width: 100%; display: block; }
-        .action-area { margin-top: 30px; display: flex; flex-direction: column; align-items: center; gap: 15px; }
-        .save-btn { text-decoration: none; background: white; color: black; padding: 12px 35px; border-radius: 50px; font-weight: bold; font-size: 14px; box-shadow: 0 0 20px rgba(255,255,255,0.2); }
+        .save-btn { text-decoration: none; color: white; border: 1px solid white; padding: 10px 30px; border-radius: 50px; margin-top: 30px; font-size: 13px; transition: 0.3s; }
+        .save-btn:hover { background: white; color: black; }
 
-        #maker-panel { position: fixed; bottom: 80px; right: 20px; width: 260px; background: rgba(20, 20, 25, 0.95); border: 1px solid #444; border-radius: 16px; padding: 20px; color: white; box-shadow: 0 20px 60px rgba(0,0,0,0.8); }
-        .input-box { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444; color: white; margin-top: 8px; box-sizing: border-box; border-radius: 6px; }
-        .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px; }
-        .color-item { padding-bottom: 100%; border-radius: 50%; cursor: pointer; border: 2px solid #333; transition: 0.2s; }
-        .color-item.selected { border-color: #fff; transform: scale(1.15); box-shadow: 0 0 10px #fff; }
-        #gen-btn { width: 100%; padding: 12px; margin-top: 20px; background: linear-gradient(90deg, #fff, #ddd); border: none; font-weight: bold; cursor: pointer; border-radius: 6px; }
+        #maker-panel { position: fixed; bottom: 80px; right: 30px; width: 280px; background: rgba(10,10,10,0.95); border: 1px solid #333; border-radius: 12px; padding: 25px; color: white; }
+        .input-box { width: 100%; padding: 10px 0; background: transparent; border: none; border-bottom: 1px solid #444; color: white; margin-top: 15px; outline: none; font-family: 'Inter'; }
+        .input-box:focus { border-bottom-color: #fff; }
+        #gen-btn { width: 100%; padding: 12px; margin-top: 25px; background: white; color: black; border: none; cursor: pointer; letter-spacing: 1px; }
+
+        /* 颜色选择器样式 */
+        .color-grid { display: flex; gap: 15px; margin-top: 20px; justify-content: center; }
+        .color-opt { width: 24px; height: 24px; border-radius: 50%; cursor: pointer; border: 2px solid transparent; transition: 0.3s; }
+        .color-opt:hover, .color-opt.active { transform: scale(1.2); border-color: white; }
     </style>
 </head>
 <body>
 
+    <div class="planet-horizon"></div>
+
     <div id="guide-overlay">
-        <div class="title-box"><h1>THE RITUAL</h1><p class="subtitle">Magic Gift Experience</p></div>
-        <p style="color:#666; font-size:12px; margin-bottom:30px;">需允许摄像头与麦克风权限</p>
-        <button id="start-btn">开启体验</button>
+        <div class="title-box">
+            <h1>STARLIGHT</h1>
+            <p class="subtitle">Interactive Experience</p>
+        </div>
+        <p style="color:#444; font-size:11px; margin-bottom:40px;">需允许摄像头与麦克风权限</p>
+        <button id="start-btn">ENTER</button>
     </div>
 
     <div id="stage-tip"><div class="tip-main" id="tip-main"></div><div class="tip-sub" id="tip-sub"></div></div>
-    <div class="skip-hint" id="skip-hint">（如果识别困难，可点击屏幕强制触发）</div>
+    <div class="skip-hint" id="skip-hint">点击屏幕任意位置可强制继续</div>
 
     <div id="canvas-container"></div>
     <video class="input_video" playsinline webkit-playsinline muted></video>
 
-    <div id="snap-btn" class="glass-btn">📸 生成纪念卡</div>
-    <div id="maker-btn" class="glass-btn">✨ 我也要定制</div>
+    <div id="snap-btn" class="glass-btn">生成卡片</div>
+    <div id="maker-btn" class="glass-btn">定制内容</div>
 
+    <!-- 卡片生成页 -->
     <div id="card-modal">
-        <div onclick="document.getElementById('card-modal').style.display='none'" style="position:absolute; top:30px; right:30px; color:white; font-size:30px; cursor:pointer;">✕</div>
+        <div onclick="document.getElementById('card-modal').style.display='none'" style="position:absolute; top:30px; right:30px; color:white; font-size:24px; cursor:pointer;">✕</div>
         <div class="card-frame"><img id="final-card-img" src=""></div>
-        <div class="action-area"><p style="color:#777; font-size:12px;">长按图片即可保存到相册</p><a id="download-link" class="save-btn" href="#" download="MagicCard.png">直接下载</a></div>
+        
+        <!-- 卡片颜色选择 -->
+        <div class="color-grid" id="card-colors">
+            <!-- JS填充 -->
+        </div>
+
+        <a id="download-link" class="save-btn" href="#" download="Starlight.png">保存图片</a>
     </div>
 
+    <!-- 定制面板 -->
     <div id="maker-panel">
-        <div onclick="document.getElementById('maker-panel').style.display='none'" style="position:absolute; right:15px; top:15px; cursor:pointer; color:#888;">✕</div>
-        <h4 style="margin:0; color:#ddd;">定制礼物</h4>
-        <input type="text" id="maker-from" class="input-box" placeholder="你的名字">
-        <input type="text" id="maker-text" class="input-box" placeholder="祝福语 (如: 生日快乐)">
-        <div class="color-grid">
-            <div class="color-item selected" style="background: linear-gradient(135deg, #00ffff, #ff00ff);" data-theme="cyber"></div>
-            <div class="color-item" style="background: linear-gradient(135deg, #ffd700, #ff8c00);" data-theme="gold"></div>
-            <div class="color-item" style="background: linear-gradient(135deg, #ff9a9e, #fecfef);" data-theme="sakura"></div>
-            <div class="color-item" style="background: linear-gradient(135deg, #4facfe, #00f2fe);" data-theme="ocean"></div>
+        <div onclick="document.getElementById('maker-panel').style.display='none'" style="position:absolute; right:20px; top:20px; cursor:pointer; color:#666;">✕</div>
+        <h4 style="margin:0; font-weight:400; letter-spacing:2px;">CUSTOMIZE</h4>
+        <input type="text" id="maker-from" class="input-box" placeholder="Your Name">
+        <input type="text" id="maker-text" class="input-box" placeholder="Wish Text">
+        
+        <p style="margin: 20px 0 10px 0; font-size:12px; color:#888;">THEME COLOR</p>
+        <div class="color-grid" id="maker-colors">
+            <!-- JS填充 -->
         </div>
-        <button onclick="document.getElementById('img-upload').click()" class="input-box" style="margin-top:10px; cursor:pointer; text-align:center;">📷 上传照片</button>
+
+        <button onclick="document.getElementById('img-upload').click()" class="input-box" style="margin-top:20px; cursor:pointer; text-align:left; color:#888;">+ Upload Photo</button>
         <input type="file" id="img-upload" style="display:none">
-        <button id="gen-btn">复制分享链接</button>
+        <button id="gen-btn">COPY LINK</button>
     </div>
 
     <script type="importmap">
@@ -116,64 +174,117 @@
         const urlParams = new URLSearchParams(window.location.search);
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
+        // 主题配色表
+        const THEMES = [
+            { name: 'blue',  colors: ['#ffffff', '#aaddff', '#8899aa'], bg: ['#000000', '#101820'] }, // 冰蓝
+            { name: 'gold',  colors: ['#ffffff', '#ffeebb', '#cc8844'], bg: ['#000000', '#201505'] }, // 黑金
+            { name: 'pink',  colors: ['#ffffff', '#ffccdd', '#aa5588'], bg: ['#000000', '#200510'] }, // 柔粉
+            { name: 'green', colors: ['#ffffff', '#ccffdd', '#44aa88'], bg: ['#000000', '#052015'] }  // 极光绿
+        ];
+        
+        let activeThemeIdx = parseInt(urlParams.get('theme')) || 0;
+        if(activeThemeIdx >= THEMES.length) activeThemeIdx = 0;
+
         const CONFIG = {
             photo: urlParams.get('img') || 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=1000&auto=format&fit=crop',
-            text: urlParams.get('text') || "2025 有你\n就是礼物",
-            from: urlParams.get('from') || "神秘朋友",
-            theme: urlParams.get('theme') || 'cyber',
-            particleCount: isMobile ? 12000 : 22000 
+            text: urlParams.get('text') || "HAPPY DAY",
+            from: urlParams.get('from') || "Friend",
+            particleCount: isMobile ? 10000 : 18000 
         };
 
-        const THEMES = {
-            'cyber': [new THREE.Color('#00ffff'), new THREE.Color('#ff00ff'), new THREE.Color('#ffffff')],
-            'gold':  [new THREE.Color('#ffd700'), new THREE.Color('#ff8c00'), new THREE.Color('#fffaf0')],
-            'sakura':[new THREE.Color('#ff9a9e'), new THREE.Color('#fecfef'), new THREE.Color('#fff')],
-            'ocean': [new THREE.Color('#4facfe'), new THREE.Color('#00f2fe'), new THREE.Color('#f0f8ff')]
-        };
-        const currentPalette = THEMES[CONFIG.theme] || THEMES['cyber'];
-
-        const STAGE = { IDLE: 0, WAIT_HAND: 1, WAIT_BLOW: 2, FORMING: 3, WAIT_PINCH: 4, WAIT_WAVE: 5, FINALE: 6 };
+        const STAGE = { IDLE: 0, WAIT_HAND: 1, WAIT_BLOW: 2, WAIT_PEACE: 3, FORMING: 4, WAIT_WAVE: 5, FINALE: 6 };
         let currentStage = STAGE.IDLE;
-        let scene, camera, renderer, composer, particles, particleData = [];
+        let stageEntryTime = 0; 
+
+        let scene, camera, renderer, composer, particles, bgStars, particleData = [];
         let targets = { photo: [], text: [] };
-        let audioContext, analyser, dataArray;
+        let audioContext, analyser, dataArray, audioInit = false; 
         let handPos = { x: 0.5, y: 0.5 };
         let isHandPresent = false;
-        let waveLastX = 0, time = 0, audioInit = false;
+        let waveLastX = 0, time = 0;
         let uploadedImgUrl = "";
         let photoMesh = null;
 
+        // 初始化颜色选择器 UI
+        function initColorUI() {
+            const createOpts = (containerId, onClick) => {
+                const con = document.getElementById(containerId);
+                con.innerHTML = '';
+                THEMES.forEach((t, i) => {
+                    const d = document.createElement('div');
+                    d.className = `color-opt ${i === activeThemeIdx ? 'active' : ''}`;
+                    d.style.background = `linear-gradient(45deg, ${t.colors[1]}, ${t.colors[2]})`;
+                    d.onclick = () => {
+                        // 移除所有 active
+                        con.querySelectorAll('.color-opt').forEach(el => el.classList.remove('active'));
+                        d.classList.add('active');
+                        onClick(i);
+                    };
+                    con.appendChild(d);
+                });
+            };
+
+            // 1. 定制面板的颜色选择 (改变粒子颜色)
+            createOpts('maker-colors', (idx) => {
+                activeThemeIdx = idx;
+                updateParticleColors();
+            });
+
+            // 2. 卡片生成页的颜色选择 (改变卡片背景)
+            createOpts('card-colors', (idx) => {
+                // 仅重新渲染卡片，不改变场景
+                generateCard(idx);
+            });
+        }
+        initColorUI();
+
+        // 动态更新粒子颜色
+        function updateParticleColors() {
+            const palette = THEMES[activeThemeIdx].colors.map(c => new THREE.Color(c));
+            particleData.forEach(p => {
+                const c = palette[Math.floor(Math.random() * palette.length)];
+                p.baseColor = c;
+                if(p.mode !== 'photo') p.color.lerp(c, 0.5); // 立即让非照片粒子变色
+            });
+        }
+
         const startBtn = document.getElementById('start-btn');
         startBtn.addEventListener('click', async () => {
-            startBtn.innerText = "正在初始化...";
-            startBtn.style.opacity = 0.7;
+            startBtn.innerText = "LOADING...";
+            startBtn.style.opacity = 0.5;
             try {
-                await initAudio();
+                await initAudio(); 
                 initThree();
                 await prepareTargets();
                 await initCamera();
                 document.getElementById('guide-overlay').style.opacity = 0;
                 setTimeout(() => document.getElementById('guide-overlay').remove(), 1000);
-                setTimeout(() => document.getElementById('skip-hint').style.opacity = 0.6, 3000);
+                setTimeout(() => document.getElementById('skip-hint').style.opacity = 0.4, 4000);
                 enterStage(STAGE.WAIT_HAND);
             } catch (e) {
                 console.error(e);
-                alert("初始化失败，请重试。");
+                alert("Please allow camera/microphone access.");
             }
         });
 
         function enterStage(s) {
             currentStage = s;
+            stageEntryTime = Date.now();
             const tipBox = document.getElementById('stage-tip');
             const main = document.getElementById('tip-main');
             const sub = document.getElementById('tip-sub');
             tipBox.classList.remove('active');
+            
             setTimeout(() => {
                 switch(s) {
-                    case STAGE.WAIT_HAND: main.innerText = "张开手掌"; sub.innerText = `准备接住 ${decodeURIComponent(CONFIG.from)} 的礼物`; break;
-                    case STAGE.WAIT_BLOW: main.innerText = "吹一口气"; sub.innerText = "唤醒沉睡的星尘"; break;
-                    case STAGE.WAIT_PINCH: main.innerText = "轻轻捏合"; sub.innerText = "将礼物拉入现实"; break;
-                    case STAGE.WAIT_WAVE: main.innerText = "挥挥手"; sub.innerText = "点亮最后的祝福"; break;
+                    case STAGE.WAIT_HAND: 
+                        main.innerText = "OPEN HAND"; sub.innerText = `Gift from ${decodeURIComponent(CONFIG.from)}`; break;
+                    case STAGE.WAIT_BLOW:
+                        main.innerText = "BLOW"; sub.innerText = "Gather the stars"; break;
+                    case STAGE.WAIT_PEACE: 
+                        main.innerText = "PEACE SIGN"; sub.innerText = "Make it real ✌️"; break;
+                    case STAGE.WAIT_WAVE: 
+                        main.innerText = "WAVE HAND"; sub.innerText = "Turn to message"; break;
                     case STAGE.FINALE: 
                         main.innerText = ""; sub.innerText = "";
                         document.getElementById('snap-btn').classList.add('show');
@@ -186,105 +297,114 @@
         }
 
         document.addEventListener('click', (e) => {
-            if(e.target.closest('button') || e.target.closest('.glass-btn') || e.target.closest('#maker-panel') || e.target.closest('#card-modal')) return;
+            if(e.target.closest('button') || e.target.closest('.glass-btn') || e.target.closest('#maker-panel') || e.target.closest('#card-modal') || e.target.closest('.color-opt')) return;
             if(currentStage === STAGE.WAIT_HAND) triggerPalmOpen();
             else if(currentStage === STAGE.WAIT_BLOW) triggerBlowEffect();
-            else if(currentStage === STAGE.WAIT_PINCH) triggerPinch();
+            else if(currentStage === STAGE.WAIT_PEACE) triggerSolidifyPhoto();
             else if(currentStage === STAGE.WAIT_WAVE) triggerWave();
         });
 
         function triggerPalmOpen() {
+            const burstX = isHandPresent ? (handPos.x - 0.5) * 500 : 0;
+            const burstY = isHandPresent ? -(handPos.y - 0.5) * 500 : 0;
             for(let i=0; i<CONFIG.particleCount; i++) {
                 const p = particleData[i];
-                p.x = (Math.random()-0.5)*50; p.y = -50 + (Math.random()-0.5)*50; p.z = 0;
-                p.tx = (Math.random()-0.5) * 600; p.ty = 300 + Math.random() * 300; p.tz = (Math.random()-0.5) * 300;
-                p.speed = 0.06 + Math.random() * 0.04;
+                p.tx = burstX; p.ty = burstY; p.tz = 0;
             }
-            enterStage(STAGE.WAIT_BLOW);
+            setTimeout(() => {
+                for(let i=0; i<CONFIG.particleCount; i++) {
+                    const p = particleData[i];
+                    const angle = Math.random() * Math.PI * 2;
+                    const r = 300 + Math.random() * 600; 
+                    p.tx = Math.cos(angle) * r; p.ty = Math.sin(angle) * r; p.tz = (Math.random()-0.5) * 800; 
+                    p.speed = 0.08 + Math.random() * 0.04;
+                }
+                enterStage(STAGE.WAIT_BLOW);
+            }, 300);
         }
 
         function checkBlow() {
             if(!audioInit || !analyser || currentStage !== STAGE.WAIT_BLOW) return;
+            if(Date.now() - stageEntryTime < 2000) return;
             analyser.getByteFrequencyData(dataArray);
             let sum = 0; for(let i=0; i<15; i++) sum += dataArray[i];
             if (sum/15 > 35) triggerBlowEffect();
         }
 
         function triggerBlowEffect() {
-            currentStage = STAGE.FORMING;
             document.getElementById('stage-tip').classList.remove('active');
-            particleData.forEach(p => {
-                const angle = Math.random() * Math.PI * 2; const r = 400 + Math.random() * 200;
-                p.tx = Math.cos(angle) * r; p.ty = Math.sin(angle) * r; p.tz = (Math.random()-0.5) * 600;
-                p.speed = 0.08;
-            });
-            setTimeout(() => {
-                const count = Math.min(CONFIG.particleCount, targets.photo.length);
-                for(let i=0; i<CONFIG.particleCount; i++) {
-                    const p = particleData[i];
-                    if(i < count) {
-                        const t = targets.photo[i];
-                        p.tx = t.x; p.ty = t.y; p.tz = 0;
-                        p.speed = 0.025; 
-                        p.mode = 'photo';
-                        p.photoColor = t.color; 
-                    } else {
-                        p.tx = (Math.random()-0.5) * 900; p.ty = (Math.random()-0.5) * 900; p.tz = -200 + (Math.random()-0.5) * 200;
-                        p.speed = 0.01;
-                    }
+            const count = Math.min(CONFIG.particleCount, targets.photo.length);
+            for(let i=0; i<CONFIG.particleCount; i++) {
+                const p = particleData[i];
+                if(i < count) {
+                    const t = targets.photo[i];
+                    p.tx = t.x; p.ty = t.y; p.tz = 0;
+                    p.speed = 0.04; p.mode = 'photo'; p.photoColor = t.color; 
+                } else {
+                    p.tx = (Math.random()-0.5) * 1000; p.ty = (Math.random()-0.5) * 1000; p.tz = -200 + (Math.random()-0.5) * 200;
+                    p.speed = 0.01;
                 }
-            }, 1200);
-            setTimeout(() => enterStage(STAGE.WAIT_PINCH), 3500);
+            }
+            setTimeout(() => { enterStage(STAGE.WAIT_PEACE); }, 1500);
         }
 
-        function triggerPinch() {
-            particleData.forEach(p => {
-                if(p.mode === 'photo') {
-                    p.speed = 0.15;
-                    p.color.setHex(0xffffff);
-                }
-            });
-            
-            // 🔥 降低辉光强度，防止过曝
-            const bloom = composer.passes[1]; 
-            bloom.strength = 1.0; 
-            
+        function checkPeaceSign(landmarks) {
+            const wrist = landmarks[0];
+            const tips = [8, 12, 16, 20];
+            const pips = [6, 10, 14, 18];
+            const isExtended = (idx) => {
+                const dTip = Math.hypot(landmarks[tips[idx]].x - wrist.x, landmarks[tips[idx]].y - wrist.y);
+                const dPip = Math.hypot(landmarks[pips[idx]].x - wrist.x, landmarks[pips[idx]].y - wrist.y);
+                return dTip > dPip * 1.2; 
+            };
+            if (isExtended(0) && isExtended(1) && !isExtended(2) && !isExtended(3)) return true;
+            return false;
+        }
+
+        function triggerSolidifyPhoto() {
+            currentStage = STAGE.FORMING;
+            document.getElementById('stage-tip').classList.remove('active');
+
             if(photoMesh) {
                 let opacity = 0;
-                let fadeIn = setInterval(() => {
-                    opacity += 0.05;
-                    if(photoMesh.material.opacity < 1) {
-                        photoMesh.material.opacity = opacity;
-                    } else {
-                        clearInterval(fadeIn);
+                let fadeIn = setInterval(() => { 
+                    opacity += 0.02; 
+                    // 关键修复：将最大不透明度限制在 0.85，避免过曝
+                    if(opacity < 0.85) photoMesh.material.opacity = opacity; 
+                    else {
+                        photoMesh.material.opacity = 0.85; 
+                        clearInterval(fadeIn); 
                     }
                 }, 30);
             }
 
-            enterStage(STAGE.WAIT_WAVE);
+            let pOpacity = 1;
+            let fadeOutP = setInterval(() => {
+                pOpacity -= 0.05;
+                if(pOpacity > 0) particles.material.opacity = pOpacity;
+                else { particles.material.opacity = 0; clearInterval(fadeOutP); }
+            }, 30);
+            
+            setTimeout(() => { enterStage(STAGE.WAIT_WAVE); }, 5000); 
         }
 
         function triggerWave() {
             if(photoMesh) {
-                let fadeOut = setInterval(() => {
-                    photoMesh.material.opacity -= 0.1;
-                    if(photoMesh.material.opacity <= 0) {
-                        photoMesh.visible = false;
-                        clearInterval(fadeOut);
-                    }
-                }, 30);
+                let fadeOut = setInterval(() => { photoMesh.material.opacity -= 0.1; if(photoMesh.material.opacity <= 0) { photoMesh.visible = false; clearInterval(fadeOut); } }, 30);
             }
+
+            particles.material.opacity = 0;
+            let fadeInP = setInterval(() => { if(particles.material.opacity < 0.9) particles.material.opacity += 0.1; else clearInterval(fadeInP); }, 30);
 
             const count = Math.min(CONFIG.particleCount, targets.text.length);
             for(let i=0; i<CONFIG.particleCount; i++) {
                 const p = particleData[i];
-                p.x += (Math.random()-0.5) * 100;
+                p.x += (Math.random()-0.5) * 100; 
                 if(i < count) {
                     p.tx = targets.text[i].x; p.ty = targets.text[i].y; p.tz = 0;
-                    p.speed = 0.05; p.mode = 'text';
-                    p.baseColor = new THREE.Color(0xffffff); 
+                    p.speed = 0.05; p.mode = 'text'; p.baseColor = new THREE.Color(0xffffff); 
                 } else {
-                    p.tx = (Math.random()-0.5) * 1000; p.ty = (Math.random()-0.5) * 1000; p.tz = (Math.random()-0.5) * 600;
+                    p.tx = (Math.random()-0.5) * 1200; p.ty = (Math.random()-0.5) * 1200; p.tz = (Math.random()-0.5) * 800;
                     p.speed = 0.02; p.mode = 'bg';
                 }
             }
@@ -292,56 +412,66 @@
         }
 
         function initThree() {
-            scene = new THREE.Scene(); scene.fog = new THREE.FogExp2(0x000000, 0.0012); 
+            scene = new THREE.Scene(); 
             camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 1, 3000); 
             camera.position.z = isMobile ? 650 : 550;
 
-            renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true });
+            renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance", preserveDrawingBuffer: true, alpha: true });
             renderer.setSize(window.innerWidth, window.innerHeight); 
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            
-            // 🔥 关键修复：开启 ToneMapping 防止高光溢出
             renderer.toneMapping = THREE.ReinhardToneMapping;
-            renderer.toneMappingExposure = 1.5;
+            renderer.toneMappingExposure = 1.2;
 
             document.getElementById('canvas-container').appendChild(renderer.domElement);
             
             const renderPass = new RenderPass(scene, camera);
-            
-            // 🔥 关键修复：阈值设为 0.15 (只有亮处发光)，强度降为 1.0 (柔和光晕)
-            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.65);
-            bloomPass.threshold = 0.15; 
-            bloomPass.strength = 1.0; 
-            bloomPass.radius = 0.4;
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0.1; bloomPass.strength = 0.8; bloomPass.radius = 0.4;
             
             composer = new EffectComposer(renderer); composer.addPass(renderPass); composer.addPass(bloomPass);
-            initParticles(); animate();
+            
+            initBgStars(); 
+            initParticles(); 
+            animate();
             window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); composer.setSize(window.innerWidth, window.innerHeight); });
         }
 
         function createSparkTexture() {
-            const canvas = document.createElement('canvas');
-            canvas.width = 32; canvas.height = 32;
+            const canvas = document.createElement('canvas'); canvas.width = 32; canvas.height = 32;
             const ctx = canvas.getContext('2d');
             const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
             grad.addColorStop(0, 'rgba(255,255,255,1)');
             grad.addColorStop(1, 'rgba(0,0,0,0)');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, 32, 32);
+            ctx.fillStyle = grad; ctx.fillRect(0, 0, 32, 32);
             return new THREE.CanvasTexture(canvas);
+        }
+
+        function initBgStars() {
+            const geo = new THREE.BufferGeometry();
+            const pos = [];
+            for(let i=0; i<3000; i++) {
+                pos.push((Math.random()-0.5)*3000, (Math.random()-0.5)*3000, (Math.random()-0.5)*1000 - 500);
+            }
+            geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({ size: 2, color: 0xffffff, transparent: true, opacity: 0.6 });
+            bgStars = new THREE.Points(geo, mat);
+            scene.add(bgStars);
         }
 
         function initParticles() {
             const geo = new THREE.BufferGeometry();
             const pos = [], cols = [], sizes = [];
             const tex = createSparkTexture();
+            
+            // 使用当前主题的颜色初始化
+            const palette = THEMES[activeThemeIdx].colors.map(c => new THREE.Color(c));
 
             for(let i=0; i<CONFIG.particleCount; i++) {
                 const x = (Math.random()-0.5)*50; const y = -300+(Math.random()-0.5)*20; const z = (Math.random()-0.5)*50;
                 pos.push(x, y, z);
-                const c = currentPalette[Math.floor(Math.random()*currentPalette.length)];
+                const c = palette[Math.floor(Math.random()*palette.length)];
                 cols.push(c.r, c.g, c.b);
-                sizes.push(Math.random() * (isMobile ? 8 : 6) + 2);
+                sizes.push(Math.random() * (isMobile ? 6 : 4) + 1);
                 particleData.push({
                     x:x, y:y, z:z, tx:x, ty:y, tz:z, speed: 0.02,
                     baseColor: c, color: c.clone(), mode: 'idle', angle: Math.random()*Math.PI*2,
@@ -352,13 +482,8 @@
             geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
             geo.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
             const mat = new THREE.PointsMaterial({ 
-                size: isMobile ? 8 : 6, 
-                map: tex, 
-                vertexColors: true, 
-                blending: THREE.AdditiveBlending, 
-                depthWrite: false, 
-                transparent: true, 
-                opacity: 0.85 
+                size: isMobile ? 6 : 4, map: tex, vertexColors: true, blending: THREE.AdditiveBlending, 
+                depthWrite: false, transparent: true, opacity: 0.9 
             });
             particles = new THREE.Points(geo, mat);
             scene.add(particles);
@@ -371,7 +496,6 @@
             
             const aspect = img.width / img.height;
             let targetW, targetH;
-            
             const MAX_3D_SIZE = 900; 
             if(aspect >= 1) { targetW = MAX_3D_SIZE; targetH = MAX_3D_SIZE / aspect; } 
             else { targetH = MAX_3D_SIZE; targetW = MAX_3D_SIZE * aspect; }
@@ -379,22 +503,12 @@
             const tex = new THREE.TextureLoader().load(CONFIG.photo);
             tex.colorSpace = THREE.SRGBColorSpace;
             const photoGeo = new THREE.PlaneGeometry(targetW, targetH);
-            
-            // 🔥 关键修复：照片材质颜色设为灰色 (0xaaaaaa)，降低自身亮度
-            const photoMat = new THREE.MeshBasicMaterial({ 
-                map: tex, 
-                transparent: true, 
-                opacity: 0, 
-                side: THREE.DoubleSide, 
-                color: 0xaaaaaa 
-            });
-            
+            // 修复过曝：颜色从纯白改为灰色，降低亮度
+            const photoMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0, side: THREE.DoubleSide, color: 0xcccccc });
             photoMesh = new THREE.Mesh(photoGeo, photoMat);
-            photoMesh.position.z = -2; 
-            scene.add(photoMesh);
+            photoMesh.position.z = -2; scene.add(photoMesh);
 
-            const size = 250; 
-            c.width = size; c.height = size / aspect;
+            const size = 250; c.width = size; c.height = size / aspect;
             ctx.drawImage(img, 0, 0, c.width, c.height);
             const imgData = ctx.getImageData(0, 0, c.width, c.height).data;
             
@@ -412,7 +526,7 @@
             }
 
             ctx.clearRect(0,0,c.width,c.height); c.width = 1024; c.height = 512;
-            ctx.font = "600 100px 'Noto Serif SC', sans-serif"; 
+            ctx.font = "700 100px 'Inter', sans-serif"; 
             ctx.fillStyle = "white"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
             decodeURIComponent(CONFIG.text).split('\\n').forEach((line, i) => ctx.fillText(line, 512, 256 + i*150));
             
@@ -428,27 +542,37 @@
         }
 
         function animate() {
-            requestAnimationFrame(animate); time += 0.015; checkBlow();
+            requestAnimationFrame(animate); time += 0.015; 
+            checkBlow(); 
+            if(bgStars) bgStars.rotation.z += 0.0002; 
+
             const pos = particles.geometry.attributes.position.array;
             const cols = particles.geometry.attributes.color.array;
+            
+            if(isHandPresent && particles) {
+                particles.rotation.x += ((handPos.y - 0.5)*0.3 - particles.rotation.x) * 0.05;
+                particles.rotation.y += ((handPos.x - 0.5)*0.3 - particles.rotation.y) * 0.05;
+            }
+
             for(let i=0; i<CONFIG.particleCount; i++) {
                 const p = particleData[i]; const ix = i*3;
                 let tx = p.tx, ty = p.ty, tz = p.tz;
+                
+                if(currentStage === STAGE.WAIT_HAND && isHandPresent) {
+                    const hx = (handPos.x - 0.5) * 600; const hy = -(handPos.y - 0.5) * 600;
+                    tx += (hx - tx) * 0.1; ty += (hy - ty) * 0.1;
+                }
+
                 if(p.mode === 'photo' || p.mode === 'text') {
-                    if(!photoMesh || photoMesh.material.opacity < 0.5) {
+                    if(currentStage !== STAGE.FORMING) {
                         tx += Math.sin(time + p.angle) * 3; ty += Math.cos(time + p.angle) * 3;
-                        if(isHandPresent) { tx += (handPos.x - 0.5) * 40; ty -= (handPos.y - 0.5) * 40; }
                     }
                 }
                 p.x += (tx - p.x) * p.speed; p.y += (ty - p.y) * p.speed; p.z += (tz - p.z) * p.speed;
                 
-                if(p.mode === 'photo') {
-                    p.color.lerp(p.photoColor, 0.08); 
-                } else if (p.mode === 'text') {
-                    p.color.lerp(p.baseColor, 0.1); 
-                } else {
-                    p.color.lerp(p.baseColor, 0.05); 
-                }
+                if(p.mode === 'photo') { p.color.lerp(p.photoColor, 0.08); } 
+                else if (p.mode === 'text') { p.color.lerp(p.baseColor, 0.1); } 
+                else { p.color.lerp(p.baseColor, 0.05); }
 
                 pos[ix] = p.x; pos[ix+1] = p.y; pos[ix+2] = p.z;
                 cols[ix] = p.color.r; cols[ix+1] = p.color.g; cols[ix+2] = p.color.b;
@@ -482,18 +606,27 @@
                 if(results.multiHandLandmarks.length > 0) {
                     isHandPresent = true; const lm = results.multiHandLandmarks[0];
                     handPos.x = lm[0].x; handPos.y = lm[0].y;
-                    const wrist = lm[0];
-                    let extendedFingers = 0;
-                    [8, 12, 16, 20].forEach(idx => {
-                        const dist = Math.sqrt((lm[idx].x - wrist.x)**2 + (lm[idx].y - wrist.y)**2);
-                        if(dist > 0.18) extendedFingers++;
-                    });
-                    if(currentStage === STAGE.WAIT_HAND && extendedFingers >= 3) triggerPalmOpen();
-                    const pinchDist = Math.hypot(lm[4].x - lm[8].x, lm[4].y - lm[8].y);
-                    if(currentStage === STAGE.WAIT_PINCH && pinchDist < 0.06) triggerPinch();
+                    
+                    if(Date.now() - stageEntryTime < 2000) { waveLastX = lm[0].x; return; }
+
+                    if(currentStage === STAGE.WAIT_HAND) {
+                        const wrist = lm[0];
+                        let extendedFingers = 0;
+                        [8, 12, 16, 20].forEach(idx => {
+                            const dist = Math.sqrt((lm[idx].x - wrist.x)**2 + (lm[idx].y - wrist.y)**2);
+                            if(dist > 0.18) extendedFingers++;
+                        });
+                        if(extendedFingers >= 3) triggerPalmOpen();
+                    }
+
+                    if(currentStage === STAGE.WAIT_PEACE) {
+                        if(checkPeaceSign(lm)) triggerSolidifyPhoto();
+                    }
+
                     const vx = lm[0].x - waveLastX;
                     if(currentStage === STAGE.WAIT_WAVE && Math.abs(vx) > 0.05) triggerWave();
                     waveLastX = lm[0].x;
+
                 } else isHandPresent = false;
             });
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
@@ -504,33 +637,55 @@
             };
         }
 
-        document.getElementById('snap-btn').onclick = () => {
+        // 生成卡片 (支持颜色参数)
+        function generateCard(themeIdx = activeThemeIdx) {
             const canvas = document.createElement('canvas'); const w = 1080, h = 1920; canvas.width = w; canvas.height = h; const ctx = canvas.getContext('2d');
-            const grad = ctx.createLinearGradient(0, 0, 0, h); grad.addColorStop(0, "#050510"); grad.addColorStop(1, "#1e1b2e"); ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+            const theme = THEMES[themeIdx];
+            
+            // 绘制动态背景
+            const grad = ctx.createLinearGradient(0, 0, 0, h); 
+            grad.addColorStop(0, theme.bg[0]); 
+            grad.addColorStop(1, theme.bg[1]); 
+            ctx.fillStyle = grad; ctx.fillRect(0,0,w,h);
+
             const src = renderer.domElement; const sSize = Math.min(src.width, src.height); const dSize = 900; const dx = (w - dSize)/2, dy = 350;
-            ctx.save(); ctx.beginPath(); ctx.roundRect(dx, dy, dSize, dSize, 40); ctx.clip(); ctx.fillStyle = "black"; ctx.fillRect(dx,dy,dSize,dSize);
+            ctx.save(); ctx.beginPath(); ctx.roundRect(dx, dy, dSize, dSize, 20); ctx.clip(); ctx.fillStyle = "black"; ctx.fillRect(dx,dy,dSize,dSize);
             ctx.drawImage(src, (src.width-sSize)/2, (src.height-sSize)/2, sSize, sSize, dx, dy, dSize, dSize); ctx.restore();
-            ctx.strokeStyle = "rgba(255, 215, 0, 0.4)"; ctx.lineWidth = 5; ctx.beginPath(); ctx.roundRect(dx, dy, dSize, dSize, 40); ctx.stroke();
-            ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = "bold 90px 'Noto Serif SC', serif"; ctx.shadowColor = "rgba(255,255,255,0.5)"; ctx.shadowBlur = 20;
+            
+            // 边框和文字颜色跟随主题
+            ctx.strokeStyle = theme.colors[1]; ctx.globalAlpha = 0.3;
+            ctx.lineWidth = 2; ctx.beginPath(); ctx.roundRect(dx, dy, dSize, dSize, 20); ctx.stroke(); ctx.globalAlpha = 1;
+
+            ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = "bold 90px 'Inter', sans-serif"; 
+            ctx.shadowColor = theme.colors[1]; ctx.shadowBlur = 15;
             ctx.fillText(decodeURIComponent(CONFIG.text).split('\\n')[0], w/2, dy + dSize + 160);
-            ctx.shadowBlur = 0; ctx.font = "40px sans-serif"; ctx.fillStyle = "#888"; ctx.fillText(`From ${decodeURIComponent(CONFIG.from)}`, w/2, dy + dSize + 260);
-            document.getElementById('final-card-img').src = canvas.toDataURL("image/png"); document.getElementById('download-link').href = canvas.toDataURL("image/png"); document.getElementById('card-modal').style.display = 'flex';
-        };
+            
+            ctx.shadowBlur = 0; ctx.font = "40px sans-serif"; ctx.fillStyle = "#888"; 
+            ctx.fillText(`From ${decodeURIComponent(CONFIG.from)}`, w/2, dy + dSize + 260);
+
+            document.getElementById('final-card-img').src = canvas.toDataURL("image/png"); 
+            document.getElementById('download-link').href = canvas.toDataURL("image/png"); 
+            document.getElementById('card-modal').style.display = 'flex';
+        }
+
+        document.getElementById('snap-btn').onclick = () => generateCard(activeThemeIdx);
 
         document.getElementById('maker-btn').onclick = () => document.getElementById('maker-panel').style.display = 'block';
-        let selectedTheme = CONFIG.theme;
-        document.querySelectorAll('.color-item').forEach(item => { item.onclick = (e) => { document.querySelectorAll('.color-item').forEach(i => i.classList.remove('selected')); e.target.classList.add('selected'); selectedTheme = e.target.dataset.theme; }});
         const IMGBB_KEY = '486b3dbcc415576a5112c1937d31f9b1'; 
         document.getElementById('img-upload').onchange = async (e) => {
-            const file = e.target.files[0]; if(!file) return; const btn = e.target.previousElementSibling; btn.innerText = "⏳ 上传中...";
+            const file = e.target.files[0]; if(!file) return; const btn = e.target.previousElementSibling; btn.innerText = "⏳ Uploading...";
             const fd = new FormData(); fd.append("image", file);
-            try { const res = await (await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: "POST", body: fd })).json(); if(res.success) { uploadedImgUrl = res.data.url; btn.innerText = "✅ 上传成功"; } } catch(err) { btn.innerText = "❌ 失败"; }
+            try { const res = await (await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: "POST", body: fd })).json(); if(res.success) { uploadedImgUrl = res.data.url; btn.innerText = "✅ Done"; } } catch(err) { btn.innerText = "❌ Error"; }
         };
         document.getElementById('gen-btn').onclick = () => {
-            let url = `${window.location.origin}${window.location.pathname}?theme=${selectedTheme}`;
+            let url = `${window.location.origin}${window.location.pathname}?`;
             const txt = document.getElementById('maker-text').value.trim(); const frm = document.getElementById('maker-from').value.trim();
-            if(txt) url += `&text=${encodeURIComponent(txt)}`; if(frm) url += `&from=${encodeURIComponent(frm)}`; if(uploadedImgUrl) url += `&img=${encodeURIComponent(uploadedImgUrl)}`;
-            navigator.clipboard.writeText(url).then(() => alert("链接已复制！\n发送给朋友，给TA一个惊喜吧！"));
+            if(txt) url += `&text=${encodeURIComponent(txt)}`; 
+            if(frm) url += `&from=${encodeURIComponent(frm)}`; 
+            if(uploadedImgUrl) url += `&img=${encodeURIComponent(uploadedImgUrl)}`;
+            // 增加主题参数
+            url += `&theme=${activeThemeIdx}`;
+            navigator.clipboard.writeText(url).then(() => alert("Copied!"));
         };
     </script>
 </body>
